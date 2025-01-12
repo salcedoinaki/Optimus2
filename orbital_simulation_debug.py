@@ -3,7 +3,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from skyfield.api import load, EarthSatellite
 from datetime import datetime, timezone, timedelta
-from math import pi, radians, cos, sin, degrees, atan2
+from math import pi, radians, degrees, atan2, cos, sin
 
 # Input your provided TLE
 tle_name = "Your_Satellite"
@@ -31,11 +31,8 @@ while current_time <= end_time:
     time_list.append(ts.utc(current_time.year, current_time.month, current_time.day, current_time.hour, current_time.minute, current_time.second))
     current_time += timedelta(seconds=10)  # Step size of 10 seconds
 
-# Swath width setup (30 km total width, 15 km on each side)
-swath_half_width_km = 15  # Half of the swath width
-
-# Earth’s radius in km
-earth_radius_km = 6371
+# Swath width setup (150 km total width, 75 km on each side)
+swath_half_width_km = 75  # Half of the swath width
 
 # Compute sub-satellite points and swath coverage
 subsatellite_points = []
@@ -47,24 +44,34 @@ for t in time_list:
     subpoint = geocentric.subpoint()  # Calculate sub-satellite point
     subsatellite_points.append((subpoint.latitude.degrees, subpoint.longitude.degrees))
 
+    # Calculate the satellite's altitude
+    position = satellite.at(t).position.km
+    earth_radius_km = 6371  # Earth's average radius in km
+    alt_km = (position[0]**2 + position[1]**2 + position[2]**2)**0.5 - earth_radius_km
+
+    # Correct swath offset calculation
+    swath_offset_rad = swath_half_width_km / earth_radius_km
+
     # Calculate the satellite's heading (azimuth)
     velocity = geocentric.velocity.km_per_s
     heading = atan2(velocity[1], velocity[0])  # Calculate azimuth in radians
 
-    # Calculate swath edges using heading and offset
-    latitude = subpoint.latitude.radians
-    longitude = subpoint.longitude.radians
-    swath_offset = radians(swath_half_width_km / earth_radius_km)  # Convert swath width to radians
-
     # Left swath edge
-    left_lat = latitude + swath_offset * cos(heading)
-    left_lon = longitude + swath_offset * sin(heading)
+    left_lat = subpoint.latitude.radians + swath_offset_rad * cos(heading)
+    left_lon = subpoint.longitude.radians + swath_offset_rad * sin(heading)
     left_swath.append((degrees(left_lat), degrees(left_lon)))
 
     # Right swath edge
-    right_lat = latitude - swath_offset * cos(heading)
-    right_lon = longitude - swath_offset * sin(heading)
+    right_lat = subpoint.latitude.radians - swath_offset_rad * cos(heading)
+    right_lon = subpoint.longitude.radians - swath_offset_rad * sin(heading)
     right_swath.append((degrees(right_lat), degrees(right_lon)))
+
+# 🔍 Debugging Output: Print the first 10 sub-satellite points and swath edges
+print("\nFirst 10 Sub-Satellite Points and Swath Edges:")
+for i in range(10):
+    print(f"{i+1}. Sub-Satellite Point: ({subsatellite_points[i][0]:.2f}, {subsatellite_points[i][1]:.2f}) | "
+          f"Left Swath Edge: ({left_swath[i][0]:.2f}, {left_swath[i][1]:.2f}) | "
+          f"Right Swath Edge: ({right_swath[i][0]:.2f}, {right_swath[i][1]:.2f})")
 
 # Extract latitudes and longitudes
 lats, lons = zip(*subsatellite_points)
@@ -83,7 +90,7 @@ ax.add_feature(cfeature.LAND, edgecolor='black')
 # Plot the satellite ground track
 ax.plot(lons, lats, color='red', linewidth=1, transform=ccrs.Geodetic(), label='Satellite Ground Track')
 
-# Plot swath coverage
+# Plot left and right swath edges
 ax.plot(left_lons, left_lats, color='blue', linewidth=0.5, transform=ccrs.Geodetic(), label='Left Swath Edge')
 ax.plot(right_lons, right_lats, color='green', linewidth=0.5, transform=ccrs.Geodetic(), label='Right Swath Edge')
 
