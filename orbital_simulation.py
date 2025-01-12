@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from skyfield.api import load, EarthSatellite
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from math import pi
 
 # Input your provided TLE
 tle_name = "Your_Satellite"
@@ -12,14 +13,27 @@ tle_line2 = "2 70331  97.5031  53.7075 0012743 113.2628 246.9522 15.19071188 190
 # Create an EarthSatellite object using your provided TLE
 satellite = EarthSatellite(tle_line1, tle_line2, tle_name, load.timescale())
 
-# Time setup
+# Calculate the orbital period in minutes
+no_kozai = satellite.model.no_kozai  # Mean motion in radians per minute
+mean_motion_revolutions_per_day = (no_kozai * 1440) / (2 * pi)  # Convert to revolutions per day
+orbital_period = 1440 / mean_motion_revolutions_per_day  # Orbital period in minutes
+print(f"Orbital Period: {orbital_period:.2f} minutes")
+
+# Time setup: Start from now and calculate until the end of one orbit
 ts = load.timescale()
-now = datetime.utcnow()
-times = ts.utc(now.year, now.month, now.day, range(0, 1440, 10))  # Every 10 minutes for 24 hours
+now = datetime.now(timezone.utc)
+end_time = now + timedelta(minutes=orbital_period)
+
+# Generate time intervals manually (every 10 seconds)
+time_list = []
+current_time = now
+while current_time <= end_time:
+    time_list.append(ts.utc(current_time.year, current_time.month, current_time.day, current_time.hour, current_time.minute, current_time.second))
+    current_time += timedelta(seconds=10)  # Step size of 10 seconds
 
 # Compute sub-satellite points
 subsatellite_points = []
-for t in times:
+for t in time_list:
     geocentric = satellite.at(t)  # Get the geocentric position
     subpoint = geocentric.subpoint()  # Calculate sub-satellite point
     subsatellite_points.append((subpoint.latitude.degrees, subpoint.longitude.degrees))
@@ -37,13 +51,13 @@ ax.add_feature(cfeature.BORDERS, linestyle=':')
 ax.add_feature(cfeature.LAND, edgecolor='black')
 
 # Plot the satellite ground track
-ax.plot(lons, lats, color='red', marker='o', markersize=2, transform=ccrs.Geodetic(), label='Satellite Ground Track')
+ax.plot(lons, lats, color='red', linewidth=1, transform=ccrs.Geodetic(), label='Satellite Ground Track')
 
 # Add day/night shading
 from cartopy.feature.nightshade import Nightshade
-ax.add_feature(Nightshade(datetime.utcnow(), alpha=0.2))
+ax.add_feature(Nightshade(datetime.now(timezone.utc), alpha=0.2))
 
 # Add title and legend
-plt.title("Satellite Ground Track for {tle_name} (24 Hours)")
+plt.title("Satellite Ground Track for {tle_name} (One Complete Orbit)")
 plt.legend()
 plt.show()
