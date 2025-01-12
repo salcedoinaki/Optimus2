@@ -1,16 +1,18 @@
 from geopy.distance import great_circle
 
-# Greedy scheduling algorithm
 def greedy_schedule(satellite_path, targets):
     scheduled_targets = []
     covered_targets = set()
 
-    for path_lat, path_lon in satellite_path:
+    for path_point in satellite_path:
+        path_lat, path_lon = path_point
+
         for target in targets:
             if target not in covered_targets:
                 distance = great_circle((path_lat, path_lon), target).km
-                if distance <= 150:  # 150 km swath width
+                if distance <= 75:
                     scheduled_targets.append(target)
                     covered_targets.add(target)
 
+    print(f"Scheduled {len(scheduled_targets)} targets.")
     return scheduled_targets

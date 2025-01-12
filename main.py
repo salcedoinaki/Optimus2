@@ -5,35 +5,29 @@ from visualizer import plot_path_and_targets
 from skyfield.api import load, EarthSatellite
 
 def main():
-    # Debugging start point
     print("Starting the Satellite Mission Planner...")
 
-    # Satellite TLE data
+    # TLE Data
     tle_name = "Your_Satellite"
-    tle_line1 = "1 25544U 98067A   24011.54791667  .00016717  00000-0  10270-3 0  9007"
-    tle_line2 = "2 25544  51.6423 217.5805 0007411 281.3912 148.7028 15.49786621298750"
+    tle_line1 = "1 70331U 23075AJ  24011.37034722  .00003363  00000+0  18158-3 0  9992"
+    tle_line2 = "2 70331  97.5031  53.7075 0012743 113.2628 246.9522 15.19071188 19047"
 
-    # Load satellite data
+    # Satellite Object
     ts = load.timescale()
     satellite = EarthSatellite(tle_line1, tle_line2, tle_name, ts)
 
-    # Get satellite path for 3 orbits
-    num_orbits = 5
-    satellite_path = get_satellite_path(satellite, num_orbits)
+    # Number of orbits to simulate
+    num_orbits = 3
 
-    # Debug output
-    print(f"Satellite path calculated. Path contains {len(satellite_path)} points.")
-    print(f"Targets: {targets}")
+    # Get Satellite Path and Swath Edges
+    satellite_path, left_swath, right_swath = get_satellite_path(satellite, num_orbits)
 
-    # Run greedy scheduling algorithm
+    # Greedy Scheduling Algorithm
     scheduled_targets = greedy_schedule(satellite_path, targets)
 
-    # Debug output
-    print(f"Scheduled {len(scheduled_targets)} targets.")
+    # Plot Results
+    print("Plotting results...")
+    plot_path_and_targets(satellite_path, left_swath, right_swath, targets, scheduled_targets)
 
-    # Plot the satellite path and targets
-    plot_path_and_targets(satellite_path, targets, scheduled_targets)
-
-# Ensure the script runs when executed directly
 if __name__ == "__main__":
     main()

@@ -89,16 +89,6 @@ right_lats, _ = zip(*right_swath)
 ax.plot(left_lons, left_lats, color='blue', linewidth=0.5, transform=ccrs.Geodetic(), label='Left Swath Edge')
 ax.plot(right_lons, right_lats, color='green', linewidth=0.5, transform=ccrs.Geodetic(), label='Right Swath Edge')
 
-# Debug: Plot a simplified version of the swath polygon
-swath_polygon = Polygon(
-    list(zip(left_lons + right_lons[::-1], left_lats + right_lats[::-1])),
-    closed=True,
-    edgecolor='cyan',
-    facecolor='cyan',
-    alpha=0.3,
-    transform=ccrs.PlateCarree(),
-)
-ax.add_patch(swath_polygon)
 
 # Add day/night shading
 from cartopy.feature.nightshade import Nightshade

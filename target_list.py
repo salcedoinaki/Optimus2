@@ -57,6 +57,7 @@ targets = [
         (45.4642, 9.1900),     # Milan, Italy
         (52.5200, 13.4050),    # Berlin, Germany
         (38.7169, -9.1399),    # Lisbon, Portugal
+
 ]
 
 
