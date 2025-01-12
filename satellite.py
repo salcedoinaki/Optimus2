@@ -16,33 +16,52 @@ def get_satellite_path(satellite, num_orbits=1):
     time_list = []
     current_time = now
     while current_time <= end_time:
-        time_list.append(ts.utc(current_time.year, current_time.month, current_time.day, current_time.hour, current_time.minute, current_time.second))
+        time_list.append(ts.utc(
+            current_time.year, current_time.month, current_time.day,
+            current_time.hour, current_time.minute, current_time.second
+        ))
         current_time += timedelta(seconds=10)
 
     # Swath width setup (75 km on each side)
     swath_half_width_km = 75
 
-    # Path and Swath Edges
     satellite_path = []
     left_swath = []
     right_swath = []
 
+    earth_radius_km = 6371
+
     for t in time_list:
         geocentric = satellite.at(t)
         subpoint = geocentric.subpoint()
-        satellite_path.append((subpoint.latitude.degrees, subpoint.longitude.degrees))
+
+        # --- Store position (lat/lon) ---
+        lat_deg = subpoint.latitude.degrees
+        lon_deg = subpoint.longitude.degrees
+
+        # --- Store velocity (vx, vy, vz) in ECI or TEME ---
+        #   geocentric.velocity.km_per_s returns (vx, vy, vz) in the inertial frame used by Skyfield
+        vx, vy, vz = geocentric.velocity.km_per_s
+
+        # Save the path with added velocity data
+        satellite_path.append({
+            'lat': lat_deg,
+            'lon': lon_deg,
+            'vx': vx,
+            'vy': vy,
+            'vz': vz,
+            'time_ts': t  # Keep the Skyfield time if you want
+        })
 
         # Satellite altitude
         position = geocentric.position.km
-        earth_radius_km = 6371
         altitude_km = (position[0]**2 + position[1]**2 + position[2]**2)**0.5 - earth_radius_km
 
         # Swath offset in radians
         swath_offset_rad = swath_half_width_km / earth_radius_km
 
-        # Calculate heading
-        velocity = geocentric.velocity.km_per_s
-        heading = atan2(velocity[1], velocity[0])
+        # Approximate "heading" in XY-plane for the satellite ground track
+        heading = atan2(vy, vx)
 
         # Left swath edge
         left_lat = subpoint.latitude.radians + swath_offset_rad * cos(heading)
